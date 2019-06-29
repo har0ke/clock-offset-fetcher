@@ -1,0 +1,1 @@
+A C++ Library To Fetch The Clock Difference Between Two Devices Via UDP.
