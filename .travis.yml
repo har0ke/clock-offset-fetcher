@@ -1,0 +1,24 @@
+dist: trusty
+sudo: false
+language: cpp
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-6
+
+before_install:
+  - pip install --user cpp-coveralls
+
+jobs:
+  include:
+    - stage: build_n_test
+      script:
+        - CXX=/usr/bin/g++-6 CC=/usr/bin/gcc-6 cmake -DCOVERAGE=1 .
+        - cmake --build .
+        - ./run_tests
+
+after_success:
+  - coveralls --root . -E ".*external.*" -E ".*tests.cpp"  -E ".*examples.*"  -E ".*tests.cpp" -E ".*CMakeFiles.*"
