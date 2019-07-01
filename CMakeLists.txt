@@ -16,7 +16,7 @@ add_library(cofetcher
         src/clock_offset_udp_server.cpp)
 
 target_include_directories(cofetcher PUBLIC include)
-target_include_directories(cofetcher PUBLIC asio/asio/include)
+target_include_directories(cofetcher PUBLIC external/asio/asio/include)
 
 target_compile_definitions(cofetcher PUBLIC -DASIO_STANDALONE)
 
@@ -29,10 +29,10 @@ target_link_libraries(cofetcher_example cofetcher)
 
 
 
-find_package(GTest REQUIRED)
+include(cmake/gtest.cmake)
 
 add_executable(tests tests/tests.cpp)
-target_link_libraries(tests GTest::GTest GTest::Main cofetcher)
+target_link_libraries(tests gtest cofetcher)
 add_test(AllTestsInCofetcher tests)
 
 
