@@ -58,6 +58,7 @@ namespace cofetcher {
     int32_t ClockOffsetService::get_offset_for(const asio::ip::udp::endpoint &endpoint) {
         double s2 = 0;
         double mean = 0;
+        std::lock_guard<std::mutex> guard(offset_maps_mutex);
         for (int32_t &o : offset_maps[endpoint]) {
             mean += (float) o / offset_maps[endpoint].size();
             s2 += (float) o * o / offset_maps[endpoint].size();
@@ -73,10 +74,18 @@ namespace cofetcher {
     }
 
     std::map<asio::ip::udp::endpoint, int32_t> ClockOffsetService::get_offsets() {
-        std::map<asio::ip::udp::endpoint, int32_t> offsets;
-        for (auto &pair : offset_maps) {
-            offsets[pair.first] = get_offset_for(pair.first);
+        std::list<endpoint> endpoints;
+
+        {
+            std::lock_guard<std::mutex> guard(offset_maps_mutex);
+            for (auto &it : offset_maps) endpoints.push_back(it.first);
         }
+
+        std::map<asio::ip::udp::endpoint, int32_t> offsets;
+        for (auto &endpoint : endpoints) {
+            offsets[endpoint] = get_offset_for(endpoint);
+        }
+
         return offsets;
     }
 
@@ -140,11 +149,15 @@ namespace cofetcher {
         if (handle_package(package)) {
             send(package, sender_endpoint);
         }
+
         int32_t offset;
         if (get_offset(package, offset)) {
-            offset_maps[sender_endpoint].push_back(offset);
-            while (offset_maps[sender_endpoint].size() > offset_counts)
-                offset_maps[sender_endpoint].pop_front();
+            {
+                std::lock_guard<std::mutex> guard1(offset_maps_mutex);
+                offset_maps[sender_endpoint].push_back(offset);
+                while (offset_maps[sender_endpoint].size() > offset_counts)
+                    offset_maps[sender_endpoint].pop_front();
+            }
             {
                 std::lock_guard<std::mutex> guard(callbacks_mutex);
                 if (!callbacks.empty()) {
@@ -155,6 +168,7 @@ namespace cofetcher {
                 }
             }
         }
+
         receive();
     }
 

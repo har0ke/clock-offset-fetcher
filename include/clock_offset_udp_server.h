@@ -131,6 +131,7 @@ namespace cofetcher {
 
         // map to collect offsets of all endpoints in question
         // TODO: user of the library should get more control over this data
+        std::mutex offset_maps_mutex;
         std::map<asio::ip::udp::endpoint, std::list<int32_t>> offset_maps;
         // parameter on how many offsets should be saved for each endpoint
         uint16_t offset_counts;
