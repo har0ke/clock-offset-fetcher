@@ -36,6 +36,10 @@ add_executable(run_tests tests/tests.cpp)
 target_link_libraries(run_tests PUBLIC gtest cofetcher)
 add_test(AllTestsInCofetcher tests)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions("-DCOFETCHER_DEBUG")
+endif()
+
 if (COVERAGE)
 
 

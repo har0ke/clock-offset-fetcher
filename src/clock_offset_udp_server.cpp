@@ -4,6 +4,8 @@
 
 #include "clock_offset_udp_server.h"
 
+constexpr const char * COSERVER_TAG = "ClockOffsetFetcherUDPServer";
+
 namespace cofetcher {
 
     ClockOffsetService::ClockOffsetService(uint16_t port, uint16_t offset_counts, uint16_t max_repetition_interval)
@@ -130,6 +132,21 @@ namespace cofetcher {
 
 
     void ClockOffsetService::receive_handler(const asio::error_code &error, std::size_t bytes_transferred) {
+
+        if(error) {
+#ifdef COFETCHER_DEBUG
+            std::cerr << COSERVER_TAG << "Error(" << error << ") occoured receiving a message. Ignoring." << std::endl;
+#endif
+            return;
+        }
+
+        if(bytes_transferred != sizeof(time_pkg)) {
+#ifdef COFETCHER_DEBUG
+            std::cerr << COSERVER_TAG << "Received message with invalid size. Ignoring";
+#endif
+            return;
+        }
+
         time_pkg &package = *(time_pkg *) buffer.begin();
         if (handle_package(package)) {
             send(package, sender_endpoint);
@@ -152,7 +169,21 @@ namespace cofetcher {
         receive();
     }
 
-    void send_handler(const asio::error_code &error, std::size_t bytes_transferred) {}
+    void send_handler(const asio::error_code &error, std::size_t bytes_transferred) {
+
+        if(error) {
+#ifdef COFETCHER_DEBUG
+            std::cerr << COSERVER_TAG << "Error(" << error << ") occoured sending a message. Ignoring." << std::endl;
+#endif
+        }
+
+        if(bytes_transferred != sizeof(time_pkg)) {
+#ifdef COFETCHER_DEBUG
+            std::cerr << COSERVER_TAG << "Send message with invalid size.";
+#endif
+        }
+
+    }
 
     void ClockOffsetService::send(time_pkg package, const asio::ip::udp::endpoint &endpoint) {
         std::vector<char> data((char *) &package, (char *) &package + sizeof(time_pkg));
