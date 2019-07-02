@@ -54,5 +54,28 @@ TEST(sample_test_case, iterative_time_requests)
     ASSERT_EQ(service1.get_time_request_handles().size(), 0);
     service2.cancel_iterative_time_requests(h2);
     ASSERT_EQ(service2.get_time_request_handles().size(), 0);
+}
 
+TEST(sample_test_case, callbacks) {
+
+    cofetcher::ClockOffsetService service1(3000, 1, 1);
+
+    service1.init_iterative_time_request(cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000));
+
+    int callback_calls = 0;
+
+    auto callback = service1.subscribe([&callback_calls](cofetcher::endpoint &endpoint, int32_t offset, int32_t filterd_offset) {
+        callback_calls++;
+    });
+
+    ASSERT_EQ(service1.get_callback_num(), 1);
+
+    service1.run_for(std::chrono::milliseconds(200));
+
+
+    ASSERT_GT(callback_calls, 0);
+
+    service1.unsubscribe(callback);
+
+    ASSERT_EQ(service1.get_callback_num(), 0);
 }

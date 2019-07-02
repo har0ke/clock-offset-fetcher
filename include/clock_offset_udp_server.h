@@ -12,6 +12,7 @@
 #include <queue>
 #include <list>
 #include <random>
+#include <functional>
 
 namespace cofetcher {
 
@@ -20,10 +21,13 @@ namespace cofetcher {
     class ClockOffsetService { // TODO: handle failed sends
 
     public:
+        typedef std::function<void(asio::ip::udp::endpoint&, int32_t offset, int32_t filtered_offset)> cofetcher_callback;
         typedef asio::steady_timer const * const_tr_handle;
         typedef std::shared_ptr<asio::steady_timer> shared_tr_handle;
         
         typedef const_tr_handle tr_handle;
+        // TODO: list iterator as handle probably not clean code, but should be defined for std::list
+        typedef const std::list<cofetcher_callback>::iterator callback_handle;
         
         /**
          * Constructor
@@ -74,11 +78,34 @@ namespace cofetcher {
          */
         void run();
 
+        /**
+         * run this service for a specific duration
+         * @tparam Rep template parameter for duration
+         * @tparam Period template parameter for duration
+         * @param d duration to run this service for
+         */
         template <typename Rep, typename Period>
         void run_for(std::chrono::duration<Rep, Period> d) {
             service.run_for(d);
         }
 
+        /**
+         * subscribe to new offsets
+         * @param callback callback to call if new offset was received.
+         *      don't do much work in callback or messages might be delayed.
+         */
+        callback_handle subscribe(cofetcher_callback callback);
+
+        /**
+         * remove a subscription
+         * @param callback the callback that is receiving offsets
+         */
+        void unsubscribe(callback_handle &callback);
+
+        /**
+         * @return number of callbacks that are subscribing to new offsets.
+         */
+        std::size_t get_callback_num() const;
 
     private:
         // keep sending time requests to endpoint
@@ -117,6 +144,10 @@ namespace cofetcher {
         std::random_device rd;
         std::mt19937 mt;
         std::uniform_real_distribution<float> dist;
+
+        std::mutex callbacks_mutex;
+        std::list<cofetcher_callback> callbacks;
+
     };
 
 }

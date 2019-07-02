@@ -93,6 +93,34 @@ namespace cofetcher {
         service.run();
     }
 
+
+    /**
+     * subscribe to new offsets
+     * @param callback callback to call if new offset was received.
+     *      don't do much work in callback or messages might be delayed.
+     */
+    ClockOffsetService::callback_handle ClockOffsetService::subscribe(cofetcher_callback callback) {
+        std::lock_guard<std::mutex> guard(callbacks_mutex);
+        callbacks.push_back(callback);
+        return --callbacks.end();
+    }
+
+    /**
+     * remove a subscription
+     * @param callback the callback that is receiving offsets
+     */
+    void ClockOffsetService::unsubscribe(ClockOffsetService::callback_handle &callback) {
+        std::lock_guard<std::mutex> guard(callbacks_mutex);
+        callbacks.erase(callback);
+    }
+
+    /**
+     * @return number of callbacks that are subscribing to new offsets.
+     */
+    std::size_t ClockOffsetService::get_callback_num() const {
+        return callbacks.size();
+    }
+
     void ClockOffsetService::receive() {
         socket.async_receive_from(asio::buffer(buffer), sender_endpoint,
                                   [this](const asio::error_code &error, std::size_t bytes_transferred) {
@@ -111,6 +139,15 @@ namespace cofetcher {
             offset_maps[sender_endpoint].push_back(offset);
             while (offset_maps[sender_endpoint].size() > offset_counts)
                 offset_maps[sender_endpoint].pop_front();
+            {
+                std::lock_guard<std::mutex> guard(callbacks_mutex);
+                if (!callbacks.empty()) {
+                    int32_t filtered_offset = get_offset_for(sender_endpoint);
+                    for (auto &callback : callbacks) {
+                        callback(sender_endpoint, offset, filtered_offset);
+                    }
+                }
+            }
         }
         receive();
     }
