@@ -18,47 +18,36 @@ namespace cofetcher {
     ClockOffsetService::init_iterative_time_request(const asio::ip::udp::endpoint &endpoint) {
 
         std::lock_guard<std::mutex> guard(tr_handles_mutex);
-        tr_handles.emplace_back(std::make_shared<asio::steady_timer>(service, std::chrono::seconds(1)));
-        shared_tr_handle &handle = tr_handles.back();
-
+        tr_handles.emplace_back(service, std::chrono::seconds(1));
+        tr_handle &handle = --tr_handles.end();
         iterative_time_request(endpoint, handle);
         handle->expires_from_now(std::chrono::seconds(0));
-        return handle.get();
+        return handle;
     }
 
     void ClockOffsetService::iterative_time_request(const asio::ip::udp::endpoint &endpoint,
-                                                    shared_tr_handle &timer) {
-        timer->expires_from_now(std::chrono::seconds((int) dist(mt)));
-        timer->async_wait([this, &endpoint, &timer](const asio::error_code &error) {
-            tr_handles_mutex.lock();
-            if (std::find(tr_handles.begin(), tr_handles.end(), timer) != tr_handles.end()) {
-                this->init_single_time_request(endpoint);
-                tr_handles_mutex.unlock();
-                this->iterative_time_request(endpoint, timer);
-            } // else: time requests were cancelled by user
-            tr_handles_mutex.unlock();
+                                                    tr_handle &handle) {
+        handle->expires_from_now(std::chrono::seconds((int) dist(mt)));
+        handle->async_wait([this, endpoint, handle](const asio::error_code &error) {
+            std::lock_guard<std::mutex> guard(tr_handles_mutex);
+            for(auto it = tr_handles.begin(); it != tr_handles.end(); it++) {
+                if (it == handle) {
+                    this->init_single_time_request(endpoint);
+                    this->iterative_time_request(endpoint, handle);
+                }
+            }
         });
     }
 
     void ClockOffsetService::cancel_iterative_time_requests(const ClockOffsetService::tr_handle &handle) {
+        handle->cancel();
+
         std::lock_guard<std::mutex> guard(tr_handles_mutex);
-        tr_handles.remove_if([&handle](shared_tr_handle timer){
-            if (timer.get() == handle) {
-                timer->cancel();
-                return true;
-            }
-            return false;
-        });
+        tr_handles.erase(handle);
     }
 
-    std::vector<ClockOffsetService::tr_handle> ClockOffsetService::get_time_request_handles() {
-        std::vector<ClockOffsetService::tr_handle> handles;
-        std::lock_guard<std::mutex> guard(tr_handles_mutex);
-        handles.reserve(tr_handles.size());
-        for(auto &handle : tr_handles) {
-            handles.push_back(handle.get());
-        }
-        return handles;
+    std::size_t ClockOffsetService::num_iterative_time_request() {
+        return tr_handles.size();
     }
 
     void ClockOffsetService::init_single_time_request(const asio::ip::udp::endpoint &endpoint) {

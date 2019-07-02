@@ -22,12 +22,11 @@ namespace cofetcher {
 
     public:
         typedef std::function<void(asio::ip::udp::endpoint&, int32_t offset, int32_t filtered_offset)> cofetcher_callback;
-        typedef asio::steady_timer const * const_tr_handle;
-        typedef std::shared_ptr<asio::steady_timer> shared_tr_handle;
-        
-        typedef const_tr_handle tr_handle;
+
         // TODO: list iterator as handle probably not clean code, but should be defined for std::list
         typedef const std::list<cofetcher_callback>::iterator callback_handle;
+        typedef const std::list<asio::steady_timer>::iterator tr_handle;
+
         
         /**
          * Constructor
@@ -57,9 +56,9 @@ namespace cofetcher {
         void init_single_time_request(const asio::ip::udp::endpoint &endpoint);
 
         /**
-         * @return handles for every active iterative time request
+         * @return the number of iterative time requests that are running.
          */
-        std::vector<tr_handle> get_time_request_handles();
+        std::size_t num_iterative_time_request();
 
         /**
          * fetch offset for a specific endpoint
@@ -109,7 +108,7 @@ namespace cofetcher {
 
     private:
         // keep sending time requests to endpoint
-        void iterative_time_request(const asio::ip::udp::endpoint &endpoint, shared_tr_handle &timer);
+        void iterative_time_request(const asio::ip::udp::endpoint &endpoint, tr_handle &handle);
 
         // initiate new receive
         void receive();
@@ -138,7 +137,7 @@ namespace cofetcher {
 
         // tr_handles for iterative time requests
         std::mutex tr_handles_mutex;
-        std::list<shared_tr_handle> tr_handles;
+        std::list<asio::steady_timer> tr_handles;
 
         // to randomly send time requests for iterative time request so not all requests are aligned
         std::random_device rd;

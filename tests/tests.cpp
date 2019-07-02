@@ -11,25 +11,24 @@ TEST(sample_test_case, iterative_time_requests)
     cofetcher::ClockOffsetService service1(3000, 1, 1);
     cofetcher::ClockOffsetService service2(3001, 20, 1);
 
-    std::list<cofetcher::ClockOffsetService::tr_handle> handles;
-
     cofetcher::endpoint endpoint1(asio::ip::make_address("0.0.0.0"), 3001);
     cofetcher::ClockOffsetService::tr_handle h1 =
             service1.init_iterative_time_request(endpoint1);
-    ASSERT_EQ(service1.get_time_request_handles().size(), 1);
+    ASSERT_EQ(service1.num_iterative_time_request(), 1);
+
 
     cofetcher::endpoint endpoint2(asio::ip::make_address("0.0.0.0"), 3000);
     cofetcher::ClockOffsetService::tr_handle h2 =
             service2.init_iterative_time_request(endpoint2);
-    ASSERT_EQ(service2.get_time_request_handles().size(), 1);
+    ASSERT_EQ(service2.num_iterative_time_request(), 1);
 
     cofetcher::endpoint endpoint3(asio::ip::make_address("0.0.0.0"), 3002);
     cofetcher::ClockOffsetService::tr_handle h3 =
             service2.init_iterative_time_request(endpoint3);
-    ASSERT_EQ(service2.get_time_request_handles().size(), 2);
+    ASSERT_EQ(service2.num_iterative_time_request(), 2);
 
     service2.cancel_iterative_time_requests(h3);
-    ASSERT_EQ(service2.get_time_request_handles().size(), 1);
+    ASSERT_EQ(service2.num_iterative_time_request(), 1);
 
     std::thread thread([&]{
         service1.run_for(std::chrono::seconds(2));
@@ -51,9 +50,9 @@ TEST(sample_test_case, iterative_time_requests)
     ASSERT_LT(std::abs(offsets2.begin()->second), 1 * 1000 * 1000);
 
     service1.cancel_iterative_time_requests(h1);
-    ASSERT_EQ(service1.get_time_request_handles().size(), 0);
+    ASSERT_EQ(service1.num_iterative_time_request(), 0);
     service2.cancel_iterative_time_requests(h2);
-    ASSERT_EQ(service2.get_time_request_handles().size(), 0);
+    ASSERT_EQ(service2.num_iterative_time_request(), 0);
 }
 
 TEST(sample_test_case, callbacks) {
