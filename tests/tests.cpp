@@ -79,4 +79,76 @@ TEST(sample_test_case, callbacks) {
     ASSERT_EQ(service1.num_callbacks(), 0);
 }
 
+void subscribe_n_init_time_request(bool &end, cofetcher::ClockOffsetService &service) {
+
+    std::list <cofetcher::ClockOffsetService::tr_handle> handles;
+    std::list <cofetcher::ClockOffsetService::callback_handle> c_handles;
+
+    while (!end) {
+        for (int i = 0; i < 20; i++)
+            handles.push_back(service.init_iterative_time_request(
+                    cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000)));
+
+        for (int i = 0; i < 20; i++)
+            c_handles.push_back(service.subscribe([](cofetcher::endpoint &endpoint,
+                                                      int32_t offset, int32_t filterd_offset) {}));
+
+        ASSERT_GE(service.num_callbacks(), 20);
+        ASSERT_GE(service.num_iterative_time_request(), 20);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+        for (auto &handle : handles)
+            service.cancel_iterative_time_requests(handle);
+        handles.clear();
+
+        for (auto &handle : c_handles)
+            service.unsubscribe(handle);
+        c_handles.clear();
+    }
+}
+
+TEST(sample_test_case, concurrency) {
+
+    cofetcher::ClockOffsetService service1(3000, 1, 1);
+
+    auto h1 = service1.init_iterative_time_request(cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000));
+
+    int callback_calls = 0;
+
+    auto callback = service1.subscribe([&callback_calls](cofetcher::endpoint &endpoint, int32_t offset, int32_t filterd_offset) {
+        callback_calls++;
+    });
+
+
+    ASSERT_EQ(service1.num_iterative_time_request(), 1);
+    ASSERT_EQ(service1.num_callbacks(), 1);
+
+    bool end = false;
+
+    std::thread thread([&]{
+        service1.run_for(std::chrono::seconds(2));
+        end = true;
+    });
+
+
+    std::thread thread2([&](){ subscribe_n_init_time_request(end, service1); });
+    std::thread thread3([&](){ subscribe_n_init_time_request(end, service1); });
+
+    std::thread thread4([&]{
+        while(!end) {
+            service1.num_iterative_time_request();
+        }
+    });
+
+    thread.join();
+    thread2.join();
+    thread3.join();
+    thread4.join();
+
+    service1.cancel_iterative_time_requests(h1);
+    service1.unsubscribe(callback);
+
+    ASSERT_EQ(service1.num_iterative_time_request(), 0);
+    ASSERT_EQ(service1.num_callbacks(), 0);
+
 }
