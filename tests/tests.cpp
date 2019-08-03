@@ -140,10 +140,17 @@ TEST(sample_test_case, concurrency) {
         }
     });
 
+    std::thread thread5([&]{
+        while(!end) {
+            service1.get_offsets();
+        }
+    });
+
     thread.join();
     thread2.join();
     thread3.join();
     thread4.join();
+    thread5.join();
 
     service1.cancel_iterative_time_requests(h1);
     service1.unsubscribe(callback);
