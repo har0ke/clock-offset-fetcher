@@ -113,7 +113,7 @@ namespace cofetcher {
         /**
          * @return number of callbacks that are subscribing to new offsets.
          */
-        std::size_t get_callback_num() const;
+        std::size_t num_callbacks() const;
 
     private:
         // keep sending time requests to endpoint

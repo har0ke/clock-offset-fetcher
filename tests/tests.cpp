@@ -67,7 +67,7 @@ TEST(sample_test_case, callbacks) {
         callback_calls++;
     });
 
-    ASSERT_EQ(service1.get_callback_num(), 1);
+    ASSERT_EQ(service1.num_callbacks(), 1);
 
     service1.run_for(std::chrono::milliseconds(200));
 
@@ -76,5 +76,7 @@ TEST(sample_test_case, callbacks) {
 
     service1.unsubscribe(callback);
 
-    ASSERT_EQ(service1.get_callback_num(), 0);
+    ASSERT_EQ(service1.num_callbacks(), 0);
+}
+
 }

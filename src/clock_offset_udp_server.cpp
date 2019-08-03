@@ -116,7 +116,7 @@ namespace cofetcher {
     /**
      * @return number of callbacks that are subscribing to new offsets.
      */
-    std::size_t ClockOffsetService::get_callback_num() const {
+    std::size_t ClockOffsetService::num_callbacks() const {
         return callbacks.size();
     }
 
