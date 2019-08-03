@@ -16,6 +16,15 @@
 
 namespace cofetcher {
 
+    template<typename T>
+    class Handle {
+        typedef T type;
+        friend class ClockOffsetService;
+        T handle_value;
+    public:
+        explicit Handle(const T &h) : handle_value(h) {};
+    };
+
     typedef asio::ip::udp::endpoint endpoint;
 
     class ClockOffsetService { // TODO: handle failed sends
@@ -24,8 +33,8 @@ namespace cofetcher {
         typedef std::function<void(asio::ip::udp::endpoint&, int32_t offset, int32_t filtered_offset)> cofetcher_callback;
 
         // TODO: list iterator as handle probably not clean code, but should be defined for std::list
-        typedef const std::list<cofetcher_callback>::iterator callback_handle;
-        typedef const std::list<asio::steady_timer>::iterator tr_handle;
+        typedef Handle<std::list<cofetcher_callback>::iterator> callback_handle;
+        typedef Handle<std::list<asio::steady_timer>::iterator> tr_handle;
 
         
         /**
@@ -108,7 +117,7 @@ namespace cofetcher {
 
     private:
         // keep sending time requests to endpoint
-        void iterative_time_request(const asio::ip::udp::endpoint &endpoint, tr_handle &handle);
+        void iterative_time_request(const asio::ip::udp::endpoint endpoint, tr_handle::type handle);
 
         // initiate new receive
         void receive();

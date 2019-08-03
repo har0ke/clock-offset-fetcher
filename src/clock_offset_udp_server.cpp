@@ -16,17 +16,16 @@ namespace cofetcher {
 
     ClockOffsetService::tr_handle
     ClockOffsetService::init_iterative_time_request(const asio::ip::udp::endpoint &endpoint) {
-
         std::lock_guard<std::mutex> guard(tr_handles_mutex);
         tr_handles.emplace_back(service, std::chrono::seconds(1));
-        tr_handle &handle = --tr_handles.end();
-        iterative_time_request(endpoint, handle);
-        handle->expires_from_now(std::chrono::seconds(0));
-        return handle;
+        auto list_iterator = --tr_handles.end();
+        iterative_time_request(endpoint, list_iterator);
+        list_iterator->expires_from_now(std::chrono::seconds(0));
+        return tr_handle(list_iterator);
     }
 
-    void ClockOffsetService::iterative_time_request(const asio::ip::udp::endpoint &endpoint,
-                                                    tr_handle &handle) {
+    void ClockOffsetService::iterative_time_request(const asio::ip::udp::endpoint endpoint,
+                                                    tr_handle::type handle) {
         handle->expires_from_now(std::chrono::seconds((int) dist(mt)));
         handle->async_wait([this, endpoint, handle](const asio::error_code &error) {
             std::lock_guard<std::mutex> guard(tr_handles_mutex);
@@ -40,10 +39,10 @@ namespace cofetcher {
     }
 
     void ClockOffsetService::cancel_iterative_time_requests(const ClockOffsetService::tr_handle &handle) {
-        handle->cancel();
+        handle.handle_value->cancel();
 
         std::lock_guard<std::mutex> guard(tr_handles_mutex);
-        tr_handles.erase(handle);
+        tr_handles.erase(handle.handle_value);
     }
 
     std::size_t ClockOffsetService::num_iterative_time_request() {
@@ -102,7 +101,7 @@ namespace cofetcher {
     ClockOffsetService::callback_handle ClockOffsetService::subscribe(cofetcher_callback callback) {
         std::lock_guard<std::mutex> guard(callbacks_mutex);
         callbacks.push_back(callback);
-        return --callbacks.end();
+        return callback_handle(--callbacks.end());
     }
 
     /**
@@ -111,7 +110,7 @@ namespace cofetcher {
      */
     void ClockOffsetService::unsubscribe(ClockOffsetService::callback_handle &callback) {
         std::lock_guard<std::mutex> guard(callbacks_mutex);
-        callbacks.erase(callback);
+        callbacks.erase(callback.handle_value);
     }
 
     /**
