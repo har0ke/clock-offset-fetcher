@@ -29,10 +29,11 @@ namespace cofetcher {
         handle->expires_from_now(std::chrono::seconds((int) dist(mt)));
         handle->async_wait([this, endpoint, handle](const asio::error_code &error) {
             std::lock_guard<std::mutex> guard(tr_handles_mutex);
-            for(auto it = tr_handles.begin(); it != tr_handles.end(); it++) {
+            for (auto it = tr_handles.begin(); it != tr_handles.end(); it++) {
                 if (it == handle) {
                     this->init_single_time_request(endpoint);
                     this->iterative_time_request(endpoint, handle);
+                    break;
                 }
             }
         });
