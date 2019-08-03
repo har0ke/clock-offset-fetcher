@@ -37,6 +37,10 @@ private:
 
 int main(int argc, char *argv[]) {
 
+    if (argc < 2) {
+        std::cout << "Too few arguments. \nUsage: cofetcher_example <service_port> [<sync_port1> <syc_port2> ...]" << std::endl;
+        exit(0);
+    }
     cofetcher::ClockOffsetService service(std::stol(argv[1]), 20);
 
     std::list<cofetcher::ClockOffsetService::tr_handle> handles;
