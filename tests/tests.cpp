@@ -152,3 +152,51 @@ TEST(sample_test_case, concurrency) {
     ASSERT_EQ(service1.num_callbacks(), 0);
 
 }
+
+TEST(sample_test_case, callback_self_removal) {
+
+    cofetcher::ClockOffsetService service1(3000, 1, 1);
+    cofetcher::ClockOffsetService service2(3001, 1, 1);
+
+    int callback_calls1 = 0;
+    auto callback1 = service1.subscribe([&callback_calls1](cofetcher::endpoint &endpoint, int32_t offset, int32_t filterd_offset, bool &remove_callback) {
+        callback_calls1++;
+        remove_callback = true;
+    });
+
+    int callback_calls2 = 0;
+    auto callback2 = service1.subscribe([&callback_calls2](cofetcher::endpoint &endpoint, int32_t offset, int32_t filterd_offset, bool &remove_callback) {
+        callback_calls2++;
+    });
+
+    ASSERT_EQ(service1.num_callbacks(), 2);
+
+    service2.init_single_time_request(cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000));
+    service2.init_single_time_request(cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000));
+
+    ASSERT_EQ(service1.num_iterative_time_request(), 0);
+
+    std::thread thread([&]{
+        service1.run_for(std::chrono::seconds(1));
+    });
+
+    std::thread thread2([&]{
+        service2.run_for(std::chrono::seconds(1));
+    });
+
+
+    thread.join();
+    thread2.join();
+
+
+    ASSERT_EQ(callback_calls1, 1);
+    ASSERT_EQ(callback_calls2, 2);
+    ASSERT_EQ(service1.num_iterative_time_request(), 0);
+
+    ASSERT_EQ(service1.num_callbacks(), 1);
+
+    service1.unsubscribe(callback2);
+
+    ASSERT_EQ(service1.num_callbacks(), 0);
+
+}
