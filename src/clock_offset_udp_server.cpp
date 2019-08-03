@@ -46,6 +46,7 @@ namespace cofetcher {
     }
 
     std::size_t ClockOffsetService::num_iterative_time_request() {
+        std::lock_guard<std::mutex> guard(tr_handles_mutex);
         return tr_handles.size();
     }
 
@@ -116,7 +117,8 @@ namespace cofetcher {
     /**
      * @return number of callbacks that are subscribing to new offsets.
      */
-    std::size_t ClockOffsetService::num_callbacks() const {
+    std::size_t ClockOffsetService::num_callbacks() {
+        std::lock_guard<std::mutex> guard(callbacks_mutex);
         return callbacks.size();
     }
 
