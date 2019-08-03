@@ -1,0 +1,8 @@
+set confirm off
+set pagination off
+run
+init-if-undefined $_exitcode = -1
+if $_exitcode != 0
+    backtrace
+end
+quit $_exitcode

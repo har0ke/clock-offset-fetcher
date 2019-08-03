@@ -1,3 +1,4 @@
+if: branch = master OR branch = devel
 dist: trusty
 sudo: false
 language: cpp
@@ -8,15 +9,23 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - g++-6
+      - gdb
 
 before_install:
   - pip install --user cpp-coveralls
 
 jobs:
   include:
-    - stage: build_n_test
+    - stage: Debug
       script:
-        - CXX=/usr/bin/g++-6 CC=/usr/bin/gcc-6 cmake -DCOVERAGE=1 .
+        - CXX=/usr/bin/g++-6 CC=/usr/bin/gcc-6 cmake -DCOVERAGE=1 . -DCMAKE_BUILD_TYPE=Debug
+        - cmake --build .
+        - gdb -q -x gdb_command ./run_tests
+    - stage: Release
+      script:
+        - mkdir release_build
+        - cd release_build
+        - CXX=/usr/bin/g++-6 CC=/usr/bin/gcc-6 cmake -DCMAKE_BUILD_TYPE=Release ..
         - cmake --build .
         - ./run_tests
 
