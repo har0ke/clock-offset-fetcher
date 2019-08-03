@@ -59,18 +59,23 @@ namespace cofetcher {
         double s2 = 0;
         double mean = 0;
         std::lock_guard<std::mutex> guard(offset_maps_mutex);
-        for (int32_t &o : offset_maps[endpoint]) {
-            mean += (float) o / offset_maps[endpoint].size();
-            s2 += (float) o * o / offset_maps[endpoint].size();
-        }
-        double s = std::sqrt(s2);
-        double corrected_mean = mean;
-        for (int32_t &o : offset_maps[endpoint]) {
-            if (std::abs(o - mean) > 2 * s) {
-                corrected_mean -= (float) o / offset_maps[endpoint].size();
+        auto offset_maps_it = offset_maps.find(endpoint);
+        if (offset_maps_it != offset_maps.end()) {
+            std::list<int> &offsets = offset_maps_it->second;
+            for (int32_t &o : offsets) {
+                mean += (float) o / offsets.size();
+                s2 += (float) o * o / offsets.size();
             }
+            double s = std::sqrt(s2);
+            double corrected_mean = mean;
+            for (int32_t &o : offsets) {
+                if (std::abs(o - mean) > 2 * s) {
+                    corrected_mean -= (float) o / offsets.size();
+                }
+            }
+            return (int32_t) corrected_mean;
         }
-        return (int32_t) corrected_mean;
+        return 0;
     }
 
     std::map<asio::ip::udp::endpoint, int32_t> ClockOffsetService::get_offsets() {
