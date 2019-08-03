@@ -30,7 +30,16 @@ namespace cofetcher {
     class ClockOffsetService { // TODO: handle failed sends
 
     public:
-        typedef std::function<void(asio::ip::udp::endpoint&, int32_t offset, int32_t filtered_offset)> cofetcher_callback;
+        /**
+         * callback function type
+         * @param offset calculated offset calculated right now
+         * @param filtered_offset mean offset over last few received offsets
+         * @param remove_callback whether this callback should be called again (default=false).
+         *         this is to make it possible for callback to remove itself from getting called again
+         *         DO NOT call 'unsubscribe' within callback, which will result in deadlock.
+         */
+        typedef std::function<void(asio::ip::udp::endpoint&, int32_t offset, int32_t filtered_offset,
+                bool &remove_callback)> cofetcher_callback;
 
         // TODO: list iterator as handle probably not clean code, but should be defined for std::list
         typedef Handle<std::list<cofetcher_callback>::iterator> callback_handle;

@@ -161,8 +161,14 @@ namespace cofetcher {
                 std::lock_guard<std::mutex> guard(callbacks_mutex);
                 if (!callbacks.empty()) {
                     int32_t filtered_offset = get_offset_for(sender_endpoint);
-                    for (auto &callback : callbacks) {
-                        callback(sender_endpoint, offset, filtered_offset);
+                    for (auto callback_it = callbacks.begin(); callback_it != callbacks.end(); /* nothing */) {
+                        bool remove_callback = false;
+                        callback_it->operator()(sender_endpoint, offset, filtered_offset, remove_callback);
+                        if(remove_callback) {
+                            callback_it = callbacks.erase(callback_it);
+                        } else {
+                            ++callback_it;
+                        }
                     }
                 }
             }

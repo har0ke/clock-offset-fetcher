@@ -63,7 +63,7 @@ TEST(sample_test_case, callbacks) {
 
     int callback_calls = 0;
 
-    auto callback = service1.subscribe([&callback_calls](cofetcher::endpoint &endpoint, int32_t offset, int32_t filterd_offset) {
+    auto callback = service1.subscribe([&callback_calls](cofetcher::endpoint &endpoint, int32_t offset, int32_t filterd_offset, bool &remove_callback) {
         callback_calls++;
     });
 
@@ -91,7 +91,7 @@ void subscribe_n_init_time_request(bool &end, cofetcher::ClockOffsetService &ser
 
         for (int i = 0; i < 20; i++)
             c_handles.push_back(service.subscribe([](cofetcher::endpoint &endpoint,
-                                                      int32_t offset, int32_t filterd_offset) {}));
+                                                      int32_t offset, int32_t filterd_offset, bool &remove_callback) {}));
 
         ASSERT_GE(service.num_callbacks(), 20);
         ASSERT_GE(service.num_iterative_time_request(), 20);
@@ -115,7 +115,7 @@ TEST(sample_test_case, concurrency) {
 
     int callback_calls = 0;
 
-    auto callback = service1.subscribe([&callback_calls](cofetcher::endpoint &endpoint, int32_t offset, int32_t filterd_offset) {
+    auto callback = service1.subscribe([&callback_calls](cofetcher::endpoint &endpoint, int32_t offset, int32_t filterd_offset, bool &remove_callback) {
         callback_calls++;
     });
 
