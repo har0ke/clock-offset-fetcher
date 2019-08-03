@@ -16,9 +16,12 @@ namespace cofetcher {
 
     ClockOffsetService::tr_handle
     ClockOffsetService::init_iterative_time_request(const asio::ip::udp::endpoint &endpoint) {
-        std::lock_guard<std::mutex> guard(tr_handles_mutex);
-        tr_handles.emplace_back(service, std::chrono::seconds(1));
-        auto list_iterator = --tr_handles.end();
+        tr_handle::type list_iterator;
+        {
+            std::lock_guard<std::mutex> guard(tr_handles_mutex);
+            tr_handles.emplace_back(service);
+            list_iterator = --tr_handles.end();
+        }
         iterative_time_request(endpoint, list_iterator);
         list_iterator->expires_from_now(std::chrono::seconds(0));
         return tr_handle(list_iterator);
@@ -29,6 +32,7 @@ namespace cofetcher {
         handle->expires_from_now(std::chrono::seconds((int) dist(mt)));
         handle->async_wait([this, endpoint, handle](const asio::error_code &error) {
             std::lock_guard<std::mutex> guard(tr_handles_mutex);
+            // need to check for handle for the case that the handle was erased while entering this method
             for (auto it = tr_handles.begin(); it != tr_handles.end(); it++) {
                 if (it == handle) {
                     this->init_single_time_request(endpoint);
@@ -159,14 +163,15 @@ namespace cofetcher {
 
         int32_t offset;
         if (get_offset(package, offset)) {
+            std::lock(offset_maps_mutex, callbacks_mutex);
             {
-                std::lock_guard<std::mutex> guard1(offset_maps_mutex);
+                std::lock_guard<std::mutex> guard1(offset_maps_mutex, std::adopt_lock);
                 offset_maps[sender_endpoint].push_back(offset);
                 while (offset_maps[sender_endpoint].size() > offset_counts)
                     offset_maps[sender_endpoint].pop_front();
             }
             {
-                std::lock_guard<std::mutex> guard(callbacks_mutex);
+                std::lock_guard<std::mutex> guard(callbacks_mutex, std::adopt_lock);
                 if (!callbacks.empty()) {
                     int32_t filtered_offset = get_offset_for(sender_endpoint);
                     for (auto callback_it = callbacks.begin(); callback_it != callbacks.end(); /* nothing */) {

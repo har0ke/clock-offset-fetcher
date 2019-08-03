@@ -126,7 +126,7 @@ TEST(sample_test_case, concurrency) {
     bool end = false;
 
     std::thread thread([&]{
-        service1.run_for(std::chrono::seconds(2));
+        service1.run_for(std::chrono::seconds(10));
         end = true;
     });
 

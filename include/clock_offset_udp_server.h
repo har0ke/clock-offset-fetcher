@@ -27,7 +27,10 @@ namespace cofetcher {
 
     typedef asio::ip::udp::endpoint endpoint;
 
+
     class ClockOffsetService { // TODO: handle failed sends
+
+        class SynchronisedTimerWrapper;
 
     public:
         /**
@@ -43,7 +46,7 @@ namespace cofetcher {
 
         // TODO: list iterator as handle probably not clean code, but should be defined for std::list
         typedef Handle<std::list<cofetcher_callback>::iterator> callback_handle;
-        typedef Handle<std::list<asio::steady_timer>::iterator> tr_handle;
+        typedef Handle<std::list<SynchronisedTimerWrapper>::iterator> tr_handle;
 
         
         /**
@@ -156,7 +159,7 @@ namespace cofetcher {
 
         // tr_handles for iterative time requests
         std::mutex tr_handles_mutex;
-        std::list<asio::steady_timer> tr_handles;
+        std::list<SynchronisedTimerWrapper> tr_handles;
 
         // to randomly send time requests for iterative time request so not all requests are aligned
         std::random_device rd;
@@ -165,6 +168,40 @@ namespace cofetcher {
 
         std::mutex callbacks_mutex;
         std::list<cofetcher_callback> callbacks;
+
+    private:
+
+        class SynchronisedTimerWrapper {
+            typedef std::chrono::steady_clock::duration duration;
+        public:
+
+            SynchronisedTimerWrapper(asio::io_service &service)
+                    : timer(service, std::chrono::seconds(1)) {};
+
+            std::size_t expires_from_now(const duration &duration) {
+                std::lock_guard<std::mutex> guard(mutex);
+                return timer.expires_from_now(duration);
+            }
+
+            std::size_t cancel() {
+                std::lock_guard<std::mutex> guard(mutex);
+                return timer.cancel();
+            }
+
+            template <typename WaitHandler>
+            ASIO_INITFN_RESULT_TYPE(WaitHandler, void (asio::error_code))
+            async_wait(ASIO_MOVE_ARG(WaitHandler) handler) {
+                std::lock_guard<std::mutex> guard(mutex);
+                return timer.async_wait(handler);
+            }
+
+        private:
+
+            std::mutex mutex;
+            asio::steady_timer timer;
+
+        };
+
 
     };
 
