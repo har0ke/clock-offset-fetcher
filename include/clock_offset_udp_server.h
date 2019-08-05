@@ -45,9 +45,8 @@ namespace cofetcher {
                 bool &remove_callback)> cofetcher_callback;
 
         // TODO: list iterator as handle probably not clean code, but should be defined for std::list
-        typedef Handle<std::list<cofetcher_callback>::iterator> callback_handle;
-        typedef Handle<std::list<SynchronisedTimerWrapper>::iterator> tr_handle;
-
+        typedef Handle<cofetcher_callback*> callback_handle;
+        typedef Handle<SynchronisedTimerWrapper*> tr_handle;
         
         /**
          * Constructor
