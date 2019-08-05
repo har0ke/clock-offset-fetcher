@@ -11,18 +11,18 @@ TEST(sample_test_case, iterative_time_requests)
     cofetcher::ClockOffsetService service1(3000, 1, 1);
     cofetcher::ClockOffsetService service2(3001, 20, 1);
 
-    cofetcher::endpoint endpoint1(asio::ip::make_address("0.0.0.0"), 3001);
+    cofetcher::endpoint endpoint1(asio::ip::make_address("127.0.0.1"), 3001);
     cofetcher::ClockOffsetService::tr_handle h1 =
             service1.init_iterative_time_request(endpoint1);
     ASSERT_EQ(service1.num_iterative_time_request(), 1);
 
 
-    cofetcher::endpoint endpoint2(asio::ip::make_address("0.0.0.0"), 3000);
+    cofetcher::endpoint endpoint2(asio::ip::make_address("127.0.0.1"), 3000);
     cofetcher::ClockOffsetService::tr_handle h2 =
             service2.init_iterative_time_request(endpoint2);
     ASSERT_EQ(service2.num_iterative_time_request(), 1);
 
-    cofetcher::endpoint endpoint3(asio::ip::make_address("0.0.0.0"), 3002);
+    cofetcher::endpoint endpoint3(asio::ip::make_address("127.0.0.1"), 3002);
     cofetcher::ClockOffsetService::tr_handle h3 =
             service2.init_iterative_time_request(endpoint3);
     ASSERT_EQ(service2.num_iterative_time_request(), 2);
@@ -59,7 +59,7 @@ TEST(sample_test_case, callbacks) {
 
     cofetcher::ClockOffsetService service1(3000, 1, 1);
 
-    service1.init_iterative_time_request(cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000));
+    service1.init_iterative_time_request(cofetcher::endpoint(asio::ip::make_address("127.0.0.1"), 3000));
 
     int callback_calls = 0;
 
@@ -87,7 +87,7 @@ void subscribe_n_init_time_request(bool &end, cofetcher::ClockOffsetService &ser
     while (!end) {
         for (int i = 0; i < 20; i++)
             handles.push_back(service.init_iterative_time_request(
-                    cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000)));
+                    cofetcher::endpoint(asio::ip::make_address("127.0.0.1"), 3000)));
 
         for (int i = 0; i < 20; i++)
             c_handles.push_back(service.subscribe([](cofetcher::endpoint &endpoint,
@@ -111,7 +111,7 @@ TEST(sample_test_case, concurrency) {
 
     cofetcher::ClockOffsetService service1(3000, 1, 1);
 
-    auto h1 = service1.init_iterative_time_request(cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000));
+    auto h1 = service1.init_iterative_time_request(cofetcher::endpoint(asio::ip::make_address("127.0.0.1"), 3000));
 
     int callback_calls = 0;
 
@@ -178,8 +178,8 @@ TEST(sample_test_case, callback_self_removal) {
 
     ASSERT_EQ(service1.num_callbacks(), 2);
 
-    service2.init_single_time_request(cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000));
-    service2.init_single_time_request(cofetcher::endpoint(asio::ip::make_address("0.0.0.0"), 3000));
+    service2.init_single_time_request(cofetcher::endpoint(asio::ip::make_address("127.0.0.1"), 3000));
+    service2.init_single_time_request(cofetcher::endpoint(asio::ip::make_address("127.0.0.1"), 3000));
 
     ASSERT_EQ(service1.num_iterative_time_request(), 0);
 
