@@ -156,7 +156,7 @@ namespace cofetcher {
             return;
         }
 
-        time_pkg &package = *(time_pkg *) buffer.begin();
+        time_pkg &package = *(time_pkg *) buffer.data();
         if (handle_package(package)) {
             send(package, sender_endpoint);
         }
