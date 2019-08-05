@@ -137,7 +137,7 @@ namespace cofetcher {
         void receive_handler(const asio::error_code &error, std::size_t bytes_transferred);
 
         // send a time package to a endpoint
-        void send(time_pkg package, const asio::ip::udp::endpoint &endpoint);
+        void send(time_pkg &package, const asio::ip::udp::endpoint &endpoint);
 
         // io service that runs this service
         asio::io_service service;

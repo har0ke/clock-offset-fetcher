@@ -208,9 +208,14 @@ namespace cofetcher {
 
     }
 
-    void ClockOffsetService::send(time_pkg package, const asio::ip::udp::endpoint &endpoint) {
-        std::vector<char> data((char *) &package, (char *) &package + sizeof(time_pkg));
-        socket.async_send_to(asio::buffer(data), endpoint, send_handler);
+    void ClockOffsetService::send(time_pkg &package, const asio::ip::udp::endpoint &endpoint) {
+		// TODO: currently using a lambda to capture buffer
+		service.post([this, package, endpoint]() {
+			std::vector<char> data((char*)& package, (char*)& package + sizeof(time_pkg));
+			asio::error_code error_code;
+			std::size_t bytes_transferred = socket.send_to(asio::buffer(data), endpoint, 0, error_code);
+			send_handler(error_code, bytes_transferred);
+		});
     }
 
 }
