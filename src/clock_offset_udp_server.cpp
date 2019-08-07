@@ -67,7 +67,7 @@ namespace cofetcher {
         std::lock_guard<std::mutex> guard(offset_maps_mutex);
         auto offset_maps_it = offset_maps.find(endpoint);
         if (offset_maps_it != offset_maps.end()) {
-            calculate_offset(offset_maps_it->second);
+            return calculate_offset(offset_maps_it->second);
         }
         return 0;
     }

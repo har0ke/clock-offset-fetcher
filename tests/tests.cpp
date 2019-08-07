@@ -44,10 +44,14 @@ TEST(sample_test_case, iterative_time_requests)
     auto offsets1 = service1.get_offsets();
     ASSERT_EQ(offsets1.size(), 1);
     ASSERT_LT(std::abs(offsets1.begin()->second), 1 * 1000 * 1000);
+    ASSERT_NE(offsets1.begin()->second, 0);
+    ASSERT_EQ(service1.get_offset_for(offsets1.begin()->first), offsets1.begin()->second);
 
-    auto offsets2 = service1.get_offsets();
+    auto offsets2 = service2.get_offsets();
     ASSERT_EQ(offsets1.size(), 1);
     ASSERT_LT(std::abs(offsets2.begin()->second), 1 * 1000 * 1000);
+    ASSERT_NE(offsets2.begin()->second, 0);
+    ASSERT_EQ(service2.get_offset_for(offsets2.begin()->first), offsets2.begin()->second);
 
     service1.cancel_iterative_time_requests(h1);
     ASSERT_EQ(service1.num_iterative_time_request(), 0);
