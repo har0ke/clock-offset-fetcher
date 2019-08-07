@@ -16,23 +16,27 @@
 
 namespace cofetcher {
 
-    template<typename T>
-    class Handle {
-        typedef T type;
-        friend class ClockOffsetService;
-        T handle_value;
-    public:
-        explicit Handle(const T &h) : handle_value(h) {};
-    };
-
     typedef asio::ip::udp::endpoint endpoint;
-
 
     class ClockOffsetService { // TODO: handle failed sends
 
         class SynchronisedTimerWrapper;
 
     public:
+
+        template<typename T>
+        class Handle {
+            friend class ClockOffsetService;
+            typedef T type;
+
+        public:
+            explicit Handle(const T &h) : handle_value(h) {};
+
+        private:
+            T handle_value;
+
+        };
+
         /**
          * callback function type
          * @param offset calculated offset calculated right now
@@ -44,7 +48,6 @@ namespace cofetcher {
         typedef std::function<void(asio::ip::udp::endpoint&, int32_t offset, int32_t filtered_offset,
                 bool &remove_callback)> cofetcher_callback;
 
-        // TODO: list iterator as handle probably not clean code, but should be defined for std::list
         typedef Handle<cofetcher_callback*> callback_handle;
         typedef Handle<SynchronisedTimerWrapper*> tr_handle;
         
@@ -127,6 +130,8 @@ namespace cofetcher {
         std::size_t num_callbacks();
 
     private:
+        int32_t calculate_offset(const std::list<int> &offsets);
+
         // keep sending time requests to endpoint
         void iterative_time_request(const asio::ip::udp::endpoint endpoint, tr_handle::type handle);
 
@@ -137,7 +142,8 @@ namespace cofetcher {
         void receive_handler(const asio::error_code &error, std::size_t bytes_transferred);
 
         // send a time package to a endpoint
-        void send(time_pkg &package, const asio::ip::udp::endpoint &endpoint);
+        void send_async(const time_pkg &package, const asio::ip::udp::endpoint &endpoint);
+        void send_sync(const time_pkg &package, const asio::ip::udp::endpoint &endpoint);
 
         // io service that runs this service
         asio::io_service service;
@@ -153,8 +159,9 @@ namespace cofetcher {
         // TODO: user of the library should get more control over this data
         std::mutex offset_maps_mutex;
         std::map<asio::ip::udp::endpoint, std::list<int32_t>> offset_maps;
-        // parameter on how many offsets should be saved for each endpoint
-        uint16_t offset_counts;
+
+        // parameter on how many (max) offsets should be saved for each endpoint
+        const uint16_t offset_counts;
 
         // tr_handles for iterative time requests
         std::mutex tr_handles_mutex;
@@ -165,13 +172,17 @@ namespace cofetcher {
         std::mt19937 mt;
         std::uniform_real_distribution<float> dist;
 
+        // callbacks to get notified on incoming offsets
         std::mutex callbacks_mutex;
         std::list<cofetcher_callback> callbacks;
 
     private:
 
+        // helper class tosynchronise access to asio::steady_timer from multiple threads
         class SynchronisedTimerWrapper {
+
             typedef std::chrono::steady_clock::duration duration;
+
         public:
 
             SynchronisedTimerWrapper(asio::io_service &service)
